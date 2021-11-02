@@ -153,7 +153,9 @@ Future<int> starter(
           '--track-widget-creation',
           '--enable-asserts',
         ]);
-        compiler ??= frontend.FrontendCompiler(output);
+        compiler ??= _FlutterFrontendCompiler(
+            output,
+        );
 
         await compiler.compile(input, options);
         compiler.acceptLastDelta();
@@ -171,7 +173,7 @@ Future<int> starter(
     }
   }
 
-  compiler ??= frontend.FrontendCompiler(output,
+  compiler ??= _FlutterFrontendCompiler(output,
       useDebuggerModuleNames: options['debugger-module-names'] as bool,
       emitDebugMetadata: options['experimental-emit-debug-metadata'] as bool,
       unsafePackageSerialization:
