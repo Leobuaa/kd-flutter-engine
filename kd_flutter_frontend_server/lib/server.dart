@@ -15,8 +15,9 @@ import 'package:frontend_server/frontend_server.dart' as frontend
         CompilerInterface,
         listenAndCompile,
         argParser,
-        usage;
-import 'package:frontend_server/frontend_server.dart';
+        usage,
+        ProgramTransformer,
+        ToStringTransformer;
 import 'package:path/path.dart' as path;
 import 'package:vm/incremental_compiler.dart';
 import 'package:vm/target/flutter.dart';
@@ -29,22 +30,15 @@ class _FlutterFrontendCompiler implements frontend.CompilerInterface {
   final AspectdAopTransformer aspectdAopTransformer = AspectdAopTransformer();
 
   _FlutterFrontendCompiler(StringSink output,
-      {BinaryPrinterFactory printerFactory,
-        ProgramTransformer transformer,
-        bool unsafePackageSerialization,
-        bool incrementalSerialization,
+      {bool unsafePackageSerialization,
         bool useDebuggerModuleNames,
         bool emitDebugMetadata,
-        bool emitDebugSymbols
-      }) : _compiler = frontend.FrontendCompiler(output,
-    printerFactory: printerFactory,
-    transformer: transformer,
-    unsafePackageSerialization: unsafePackageSerialization,
-    incrementalSerialization: incrementalSerialization,
-    useDebuggerModuleNames: useDebuggerModuleNames,
-    emitDebugMetadata: emitDebugMetadata,
-    emitDebugSymbols: emitDebugSymbols
-  );
+        frontend.ProgramTransformer transformer})
+      : _compiler = frontend.FrontendCompiler(output,
+      transformer: transformer,
+      useDebuggerModuleNames: useDebuggerModuleNames,
+      emitDebugMetadata: emitDebugMetadata,
+      unsafePackageSerialization: unsafePackageSerialization);
 
   @override
   Future<bool> compile(String entryPoint, ArgResults options,
@@ -119,12 +113,20 @@ class _FlutterFrontendCompiler implements frontend.CompilerInterface {
 /// `compiler` is an optional parameter so it can be replaced with mocked
 /// version for testing.
 Future<int> starter(
-  List<String> args, {
-  frontend.CompilerInterface compiler,
-  Stream<List<int>> input,
-  StringSink output,
-}) async {
+    List<String> args, {
+      frontend.CompilerInterface compiler,
+      Stream<List<int>> input,
+      StringSink output,
+      frontend.ProgramTransformer transformer,
+    }) async {
   ArgResults options;
+  frontend.argParser.addMultiOption(
+    'delete-tostring-package-uri',
+    help: 'Replaces implementations of `toString` with `super.toString()` for '
+        'specified package',
+    valueHelp: 'dart:ui',
+    defaultsTo: const <String>[],
+  );
   try {
     options = frontend.argParser.parse(args);
   } catch (error) {
@@ -132,6 +134,8 @@ Future<int> starter(
     print(frontend.usage);
     return 1;
   }
+
+  final Set<String> deleteToStringPackageUris = (options['delete-tostring-package-uri'] as List<String>).toSet();
 
   if (options['train'] as bool) {
     if (!options.rest.isNotEmpty) {
@@ -141,7 +145,7 @@ Future<int> starter(
     final String input = options.rest[0];
     final String sdkRoot = options['sdk-root'] as String;
     final Directory temp =
-        Directory.systemTemp.createTempSync('train_frontend_server');
+    Directory.systemTemp.createTempSync('train_frontend_server');
     try {
       for (int i = 0; i < 3; i++) {
         final String outputTrainingDill = path.join(temp.path, 'app.dill');
@@ -154,7 +158,8 @@ Future<int> starter(
           '--enable-asserts',
         ]);
         compiler ??= _FlutterFrontendCompiler(
-            output,
+          output,
+          transformer: frontend.ToStringTransformer(null, deleteToStringPackageUris),
         );
 
         await compiler.compile(input, options);
@@ -174,10 +179,11 @@ Future<int> starter(
   }
 
   compiler ??= _FlutterFrontendCompiler(output,
+      transformer: frontend.ToStringTransformer(transformer, deleteToStringPackageUris),
       useDebuggerModuleNames: options['debugger-module-names'] as bool,
       emitDebugMetadata: options['experimental-emit-debug-metadata'] as bool,
       unsafePackageSerialization:
-          options['unsafe-package-serialization'] as bool);
+      options['unsafe-package-serialization'] as bool);
 
   if (options.rest.isNotEmpty) {
     return await compiler.compile(options.rest[0], options) ? 0 : 254;
