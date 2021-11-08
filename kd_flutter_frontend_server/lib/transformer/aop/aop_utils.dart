@@ -12,15 +12,15 @@ class AopUtils {
   static String kAopAnnotationClassExecute = 'Execute';
   static String kAopAnnotationClassInject = 'Inject';
   static String kImportUriAopAspect =
-      'package:aspectd/src/plugins/aop/annotation/aspect.dart';
+      'package:tkd_aspectd/src/plugins/aop/annotation/aspect.dart';
   static String kImportUriAopCall =
-      'package:aspectd/src/plugins/aop/annotation/call.dart';
+      'package:tkd_aspectd/src/plugins/aop/annotation/call.dart';
   static String kImportUriAopExecute =
-      'package:aspectd/src/plugins/aop/annotation/execute.dart';
+      'package:tkd_aspectd/src/plugins/aop/annotation/execute.dart';
   static String kImportUriAopInject =
-      'package:aspectd/src/plugins/aop/annotation/inject.dart';
+      'package:tkd_aspectd/src/plugins/aop/annotation/inject.dart';
   static String kImportUriPointCut =
-      'package:aspectd/src/plugins/aop/annotation/pointcut.dart';
+      'package:tkd_aspectd/src/plugins/aop/annotation/pointcut.dart';
   static String kAopUniqueKeySeperator = '#';
   static String kAopAnnotationClassAspect = 'Aspect';
   static String kAopAnnotationImportUri = 'importUri';
