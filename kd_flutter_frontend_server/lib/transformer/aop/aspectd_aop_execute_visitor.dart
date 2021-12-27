@@ -58,7 +58,7 @@ class AspectdAopExecuteVisitor extends RecursiveVisitor<void> {
 
   @override
   void visitProcedure(Procedure node) {
-    String procedureName = node.name.name;
+    String procedureName = node.name.text;
     AopItemInfo matchedAopItemInfo;
     int aopItemInfoListLen = _aopItemInfoList.length;
     for (int i = 0; i < aopItemInfoListLen && matchedAopItemInfo == null; i++) {
@@ -105,7 +105,7 @@ class AspectdAopExecuteVisitor extends RecursiveVisitor<void> {
 
     //目标新建stub函数，方便完成目标->aopstub->目标stub链路
     final Procedure originalStubProcedure = AopUtils.createStubProcedure(
-        Name(originalProcedure.name.name + '_' + stubKey,
+        Name(originalProcedure.name.text+ '_' + stubKey,
             originalProcedure.name.library),
         aopItemInfo,
         originalProcedure,
@@ -171,7 +171,7 @@ class AspectdAopExecuteVisitor extends RecursiveVisitor<void> {
 
     //目标新建stub函数，方便完成目标->aopstub->目标stub链路
     final Procedure originalStubProcedure = AopUtils.createStubProcedure(
-        Name(originalProcedure.name.name + '_' + stubKey,
+        Name(originalProcedure.name.text + '_' + stubKey,
             originalProcedure.name.library),
         aopItemInfo,
         originalProcedure,
@@ -193,8 +193,10 @@ class AspectdAopExecuteVisitor extends RecursiveVisitor<void> {
     final Class pointcutClass = AopUtils.pointCutProceedProcedure.parent;
     AopUtils.insertLibraryDependency(pointcutLibrary, originalLibrary);
 
-    final MethodInvocation mockedInvocation = MethodInvocation(
-        AsExpression(PropertyGet(ThisExpression(), Name('target')),
+    final InstanceInvocation mockedInvocation = InstanceInvocation(
+        InstanceAccessKind.Object,
+        AsExpression(
+            InstanceGet(InstanceAccessKind.Instance, ThisExpression(), Name('target')),
             InterfaceType(originalClass, Nullability.legacy)),
         originalStubProcedure.name,
         AopUtils.concatArguments4PointcutStubCall(originalProcedure));
@@ -235,7 +237,9 @@ class AspectdAopExecuteVisitor extends RecursiveVisitor<void> {
             ConstructorInvocation.byReference(
                 aopItemMemberCls.constructors.first.reference,
                 Arguments(<Expression>[]));
-        callExpression = MethodInvocation(redirectConstructorInvocation,
+        callExpression = InstanceInvocation(
+            InstanceAccessKind.Object,
+            redirectConstructorInvocation,
             aopItemInfo.aopMember.name, redirectArguments);
       }
     }

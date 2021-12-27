@@ -88,21 +88,21 @@ class AspectdAopTransformer extends FlutterProgramTransformer {
         if (clsName == AopUtils.kAopAnnotationClassPointCut &&
             importUri.toString() == AopUtils.kImportUriPointCut) {
           for (Procedure procedure in cls.procedures) {
-            if (procedure.name.name == AopUtils.kAopPointcutProcessName) {
+            if (procedure.name.text == AopUtils.kAopPointcutProcessName) {
               pointCutProceedProcedure = procedure;
             }
           }
         }
         if (clsName == 'List' && importUri.toString() == 'dart:core') {
           for (Procedure procedure in cls.procedures) {
-            if (procedure.name.name == '[]') {
+            if (procedure.name.text == '[]') {
               listGetProcedure = procedure;
             }
           }
         }
         if (clsName == 'Map' && importUri.toString() == 'dart:core') {
           for (Procedure procedure in cls.procedures) {
-            if (procedure.name.name == '[]') {
+            if (procedure.name.text == '[]') {
               mapGetProcedure = procedure;
             }
           }

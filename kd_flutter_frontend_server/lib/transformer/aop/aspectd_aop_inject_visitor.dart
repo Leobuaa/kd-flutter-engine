@@ -91,9 +91,9 @@ class AspectdAopInjectVisitor extends RecursiveVisitor<void> {
     for (int i = 0; i < aopItemInfoListLen && matchedAopItemInfo == null; i++) {
       AopItemInfo aopItemInfo = _aopItemInfoList[i];
       if (cls.name +
-                  (constructor.name.name == ''
+                  (constructor.name.text == ''
                       ? ''
-                      : '.' + constructor.name.name) ==
+                      : '.' + constructor.name.text) ==
               aopItemInfo.methodName &&
           true == aopItemInfo.isStatic) {
         matchedAopItemInfo = aopItemInfo;
@@ -115,7 +115,7 @@ class AspectdAopInjectVisitor extends RecursiveVisitor<void> {
 
   @override
   void visitProcedure(Procedure node) {
-    String procedureName = node.name.name;
+    String procedureName = node.name.text;
     AopItemInfo matchedAopItemInfo;
     int aopItemInfoListLen = _aopItemInfoList.length;
     for (int i = 0; i < aopItemInfoListLen && matchedAopItemInfo == null; i++) {
@@ -159,40 +159,6 @@ class AspectdAopInjectVisitor extends RecursiveVisitor<void> {
       final VariableGet variableGet =
           VariableGet(_originalVariableDeclaration[node.variable.name]);
       return variableGet;
-    }
-    return node;
-  }
-
-  @override
-  PropertyGet visitPropertyGet(PropertyGet node) {
-    node.visitChildren(this);
-    final Node interfaceTargetNode = node.interfaceTargetReference.node;
-    if (_curAopLibrary != null) {
-      if (interfaceTargetNode is Field) {
-        if (interfaceTargetNode.fileUri == _curAopLibrary.fileUri) {
-          final List<String> keypaths =
-              AopUtils.getPropertyKeyPaths(node.toString());
-          final String firstEle = keypaths[0];
-          if (firstEle == 'this') {
-            final Class cls =
-                AopUtils.findClassFromThisWithKeypath(_curClass, keypaths);
-            final Field field =
-                AopUtils.findFieldForClassWithName(cls, node.name.name);
-            return PropertyGet(node.receiver, field.name);
-          } else {
-            final VariableDeclaration variableDeclaration =
-                _originalVariableDeclaration[firstEle];
-            if (variableDeclaration.type is InterfaceType) {
-              final InterfaceType interfaceType = variableDeclaration.type;
-              final Class cls = AopUtils.findClassFromThisWithKeypath(
-                  interfaceType.classNode, keypaths);
-              final Field field =
-                  AopUtils.findFieldForClassWithName(cls, node.name.name);
-              return PropertyGet(node.receiver, field.name);
-            }
-          }
-        }
-      }
     }
     return node;
   }

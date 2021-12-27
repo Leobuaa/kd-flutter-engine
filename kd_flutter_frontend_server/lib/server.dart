@@ -16,8 +16,7 @@ import 'package:frontend_server/frontend_server.dart' as frontend
         listenAndCompile,
         argParser,
         usage,
-        ProgramTransformer,
-        ToStringTransformer;
+        ProgramTransformer;
 import 'package:path/path.dart' as path;
 import 'package:vm/incremental_compiler.dart';
 import 'package:vm/target/flutter.dart';
@@ -117,16 +116,8 @@ Future<int> starter(
       frontend.CompilerInterface compiler,
       Stream<List<int>> input,
       StringSink output,
-      frontend.ProgramTransformer transformer,
     }) async {
   ArgResults options;
-  frontend.argParser.addMultiOption(
-    'delete-tostring-package-uri',
-    help: 'Replaces implementations of `toString` with `super.toString()` for '
-        'specified package',
-    valueHelp: 'dart:ui',
-    defaultsTo: const <String>[],
-  );
   try {
     options = frontend.argParser.parse(args);
   } catch (error) {
@@ -134,8 +125,6 @@ Future<int> starter(
     print(frontend.usage);
     return 1;
   }
-
-  final Set<String> deleteToStringPackageUris = (options['delete-tostring-package-uri'] as List<String>).toSet();
 
   if (options['train'] as bool) {
     if (!options.rest.isNotEmpty) {
@@ -157,10 +146,7 @@ Future<int> starter(
           '--track-widget-creation',
           '--enable-asserts',
         ]);
-        compiler ??= _FlutterFrontendCompiler(
-          output,
-          transformer: frontend.ToStringTransformer(null, deleteToStringPackageUris),
-        );
+        compiler ??= _FlutterFrontendCompiler(output);
 
         await compiler.compile(input, options);
         compiler.acceptLastDelta();
@@ -179,7 +165,6 @@ Future<int> starter(
   }
 
   compiler ??= _FlutterFrontendCompiler(output,
-      transformer: frontend.ToStringTransformer(transformer, deleteToStringPackageUris),
       useDebuggerModuleNames: options['debugger-module-names'] as bool,
       emitDebugMetadata: options['experimental-emit-debug-metadata'] as bool,
       unsafePackageSerialization:

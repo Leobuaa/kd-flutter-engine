@@ -152,7 +152,7 @@ class AopUtils {
         continue;
       }
       for (Field field in cls.fields) {
-        if (field.name.name == part) {
+        if (field.name.text == part) {
           final InterfaceType interfaceType = field.type;
           cls = interfaceType.className.node;
           break;
@@ -164,7 +164,7 @@ class AopUtils {
 
   static Field findFieldForClassWithName(Class cls, String fieldName) {
     for (Field field in cls.fields) {
-      if (field.name.name == fieldName) {
+      if (field.name.text == fieldName) {
         return field;
       }
     }
@@ -206,13 +206,13 @@ class AopUtils {
         '${AopUtils.kAopStubMethodPrefix}${AopUtils.kPrimaryKeyAopMethod}';
     //重定向到AOP的函数体中去
     final Arguments pointCutConstructorArguments = Arguments.empty();
-    final List<MapEntry> sourceInfos = <MapEntry>[];
+    final List<MapLiteralEntry> sourceInfos = <MapLiteralEntry>[];
     sourceInfo?.forEach((String key, String value) {
-      sourceInfos.add(MapEntry(StringLiteral(key), StringLiteral(value)));
+      sourceInfos.add(MapLiteralEntry(StringLiteral(key), StringLiteral(value)));
     });
     pointCutConstructorArguments.positional.add(MapLiteral(sourceInfos));
     pointCutConstructorArguments.positional.add(targetExpression);
-    String memberName = member?.name?.name;
+    String memberName = member?.name?.text;
     if (member is Constructor) {
       memberName = AopUtils.nameForConstructor(member);
     }
@@ -221,10 +221,10 @@ class AopUtils {
         .add(StringLiteral(stubKey ?? stubKeyDefault));
     pointCutConstructorArguments.positional
         .add(ListLiteral(invocationArguments.positional));
-    final List<MapEntry> entries = <MapEntry>[];
+    final List<MapLiteralEntry> entries = <MapLiteralEntry>[];
     for (NamedExpression namedExpression in invocationArguments.named) {
       entries.add(
-          MapEntry(StringLiteral(namedExpression.name), namedExpression.value));
+          MapLiteralEntry(StringLiteral(namedExpression.name), namedExpression.value));
     }
     pointCutConstructorArguments.positional.add(MapLiteral(entries));
 
@@ -242,11 +242,12 @@ class AopUtils {
         in member.function.positionalParameters) {
       final Arguments getArguments = Arguments.empty();
       getArguments.positional.add(IntLiteral(i));
-      final MethodInvocation methodInvocation = MethodInvocation(
-          PropertyGet(ThisExpression(), Name('positionalParams')),
+      final InstanceInvocation instanceInvocation = InstanceInvocation(
+          InstanceAccessKind.Object,
+          InstanceGet(InstanceAccessKind.Instance, ThisExpression(), Name('positionalParams')),
           listGetProcedure.name,
           getArguments);
-      final AsExpression asExpression = AsExpression(methodInvocation,
+      final AsExpression asExpression = AsExpression(instanceInvocation,
           deepCopyASTNode(variableDeclaration.type, ignoreGenerics: true));
       arguments.positional.add(asExpression);
       i++;
@@ -256,11 +257,12 @@ class AopUtils {
         in member.function.namedParameters) {
       final Arguments getArguments = Arguments.empty();
       getArguments.positional.add(StringLiteral(variableDeclaration.name));
-      final MethodInvocation methodInvocation = MethodInvocation(
-          PropertyGet(ThisExpression(), Name('namedParams')),
+      final InstanceInvocation instanceInvocation = InstanceInvocation(
+          InstanceAccessKind.Object,
+          InstanceGet(InstanceAccessKind.Instance, ThisExpression(), Name('namedParams')),
           mapGetProcedure.name,
           getArguments);
-      final AsExpression asExpression = AsExpression(methodInvocation,
+      final AsExpression asExpression = AsExpression(instanceInvocation,
           deepCopyASTNode(variableDeclaration.type, ignoreGenerics: true));
       namedEntries.add(NamedExpression(variableDeclaration.name, asExpression));
     }
@@ -272,18 +274,21 @@ class AopUtils {
 
   static void insertProceedBranch(Procedure procedure, bool shouldReturn) {
     final Block block = pointCutProceedProcedure.function.body;
-    final String methodName = procedure.name.name;
-    final MethodInvocation methodInvocation =
-        MethodInvocation(ThisExpression(), Name(methodName), Arguments.empty());
+    final String methodName = procedure.name.text;
+    final InstanceInvocation instanceInvocation = InstanceInvocation(
+        InstanceAccessKind.Object,
+        ThisExpression(), Name(methodName), Arguments.empty());
     final List<Statement> statements = block.statements;
     statements.insert(
         statements.length - 1,
         IfStatement(
-            MethodInvocation(PropertyGet(ThisExpression(), Name('stubKey')),
+            InstanceInvocation(
+                InstanceAccessKind.Object,
+                InstanceGet(InstanceAccessKind.Instance, ThisExpression(), Name('stubKey')),
                 Name('=='), Arguments(<Expression>[StringLiteral(methodName)])),
             Block(<Statement>[
-              if (shouldReturn) ReturnStatement(methodInvocation),
-              if (!shouldReturn) ExpressionStatement(methodInvocation),
+              if (shouldReturn) ReturnStatement(instanceInvocation),
+              if (!shouldReturn) ExpressionStatement(instanceInvocation),
             ]),
             null));
   }
@@ -396,7 +401,7 @@ class AopUtils {
         asyncMarker: referProcedure.function.asyncMarker,
         dartAsyncMarker: referProcedure.function.dartAsyncMarker);
     final Procedure procedure = Procedure(
-      Name(methodName.name, methodName.library),
+      Name(methodName.text, methodName.library),
       ProcedureKind.Method,
       functionNode,
       isStatic: referProcedure.isStatic,
@@ -431,7 +436,7 @@ class AopUtils {
         asyncMarker: referConstructor.function.asyncMarker,
         dartAsyncMarker: referConstructor.function.dartAsyncMarker);
     final Constructor constructor = Constructor(functionNode,
-        name: Name(methodName.name, methodName.library),
+        name: Name(methodName.text, methodName.library),
         isConst: referConstructor.isConst,
         isExternal: referConstructor.isExternal,
         isSynthetic: referConstructor.isSynthetic,
@@ -520,8 +525,8 @@ class AopUtils {
   static String nameForConstructor(Constructor constructor) {
     final Class constructorCls = constructor.parent;
     String constructorName = '${constructorCls.name}';
-    if (constructor.name.name.isNotEmpty) {
-      constructorName += '.${constructor.name.name}';
+    if (constructor.name.text.isNotEmpty) {
+      constructorName += '.${constructor.name.text}';
     }
     return constructorName;
   }
