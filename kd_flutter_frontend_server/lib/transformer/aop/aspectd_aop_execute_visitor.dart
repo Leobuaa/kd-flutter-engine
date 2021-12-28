@@ -193,13 +193,14 @@ class AspectdAopExecuteVisitor extends RecursiveVisitor<void> {
     final Class pointcutClass = AopUtils.pointCutProceedProcedure.parent;
     AopUtils.insertLibraryDependency(pointcutLibrary, originalLibrary);
 
-    final InstanceInvocation mockedInvocation = InstanceInvocation(
-        InstanceAccessKind.Object,
+    final DynamicInvocation mockedInvocation = DynamicInvocation(
+        DynamicAccessKind.Dynamic,
         AsExpression(
-            InstanceGet(InstanceAccessKind.Instance, ThisExpression(), Name('target')),
+            DynamicGet(DynamicAccessKind.Dynamic, ThisExpression(), Name('target')),
             InterfaceType(originalClass, Nullability.legacy)),
         originalStubProcedure.name,
-        AopUtils.concatArguments4PointcutStubCall(originalProcedure));
+        AopUtils.concatArguments4PointcutStubCall(originalProcedure),
+    );
 
     final Procedure stubProcedureNew = AopUtils.createStubProcedure(
         Name(stubKey, AopUtils.pointCutProceedProcedure.name.library),
@@ -240,7 +241,9 @@ class AspectdAopExecuteVisitor extends RecursiveVisitor<void> {
         callExpression = InstanceInvocation(
             InstanceAccessKind.Object,
             redirectConstructorInvocation,
-            aopItemInfo.aopMember.name, redirectArguments);
+            aopItemInfo.aopMember.name, redirectArguments,
+            interfaceTarget: aopItemInfo.aopMember as Procedure,
+            functionType: aopItemInfo.aopMember.getterType as FunctionType);
       }
     }
     return AopUtils.createProcedureBodyWithExpression(

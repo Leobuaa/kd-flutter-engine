@@ -244,9 +244,13 @@ class AopUtils {
       getArguments.positional.add(IntLiteral(i));
       final InstanceInvocation instanceInvocation = InstanceInvocation(
           InstanceAccessKind.Object,
-          InstanceGet(InstanceAccessKind.Instance, ThisExpression(), Name('positionalParams')),
+          DynamicGet(
+              DynamicAccessKind.Dynamic, ThisExpression(), Name('positionalParams')),
           listGetProcedure.name,
-          getArguments);
+          getArguments,
+          interfaceTarget: listGetProcedure,
+          functionType: listGetProcedure.getterType as FunctionType
+      );
       final AsExpression asExpression = AsExpression(instanceInvocation,
           deepCopyASTNode(variableDeclaration.type, ignoreGenerics: true));
       arguments.positional.add(asExpression);
@@ -259,9 +263,11 @@ class AopUtils {
       getArguments.positional.add(StringLiteral(variableDeclaration.name));
       final InstanceInvocation instanceInvocation = InstanceInvocation(
           InstanceAccessKind.Object,
-          InstanceGet(InstanceAccessKind.Instance, ThisExpression(), Name('namedParams')),
+          DynamicGet(DynamicAccessKind.Dynamic, ThisExpression(), Name('namedParams')),
           mapGetProcedure.name,
-          getArguments);
+          getArguments,
+          interfaceTarget: mapGetProcedure,
+          functionType: mapGetProcedure.getterType as FunctionType);
       final AsExpression asExpression = AsExpression(instanceInvocation,
           deepCopyASTNode(variableDeclaration.type, ignoreGenerics: true));
       namedEntries.add(NamedExpression(variableDeclaration.name, asExpression));
@@ -275,16 +281,16 @@ class AopUtils {
   static void insertProceedBranch(Procedure procedure, bool shouldReturn) {
     final Block block = pointCutProceedProcedure.function.body;
     final String methodName = procedure.name.text;
-    final InstanceInvocation instanceInvocation = InstanceInvocation(
-        InstanceAccessKind.Object,
+    final DynamicInvocation instanceInvocation = DynamicInvocation(
+        DynamicAccessKind.Dynamic,
         ThisExpression(), Name(methodName), Arguments.empty());
     final List<Statement> statements = block.statements;
     statements.insert(
         statements.length - 1,
         IfStatement(
-            InstanceInvocation(
-                InstanceAccessKind.Object,
-                InstanceGet(InstanceAccessKind.Instance, ThisExpression(), Name('stubKey')),
+            DynamicInvocation(
+                DynamicAccessKind.Dynamic,
+                DynamicGet(DynamicAccessKind.Dynamic, ThisExpression(), Name('stubKey')),
                 Name('=='), Arguments(<Expression>[StringLiteral(methodName)])),
             Block(<Statement>[
               if (shouldReturn) ReturnStatement(instanceInvocation),

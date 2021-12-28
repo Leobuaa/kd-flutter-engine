@@ -311,7 +311,9 @@ class AspectdAopCallVisitor extends Transformer {
       InstanceAccessKind.Instance,
       redirectConstructorInvocation,
       aopItemInfo.aopMember.name,
-      redirectArguments);
+      redirectArguments,
+      interfaceTarget: aopItemInfo.aopMember as Procedure,
+      functionType: aopItemInfo.aopMember.getterType as FunctionType);
     AopUtils.insertLibraryDependency(
         _curLibrary, aopItemInfo.aopMember.parent.parent as Library);
 
@@ -331,10 +333,12 @@ class AspectdAopCallVisitor extends Transformer {
     //Add new Procedure
     final InstanceInvocation mockedInvocation = InstanceInvocation(
         InstanceAccessKind.Object,
-        AsExpression(InstanceGet(InstanceAccessKind.Instance, ThisExpression(), Name('target')),
+        AsExpression(DynamicGet(DynamicAccessKind.Dynamic, ThisExpression(), Name('target')),
             InterfaceType(procedureImpl, Nullability.legacy)),
         originalProcedure.name,
-        AopUtils.concatArguments4PointcutStubCall(originalProcedure));
+        AopUtils.concatArguments4PointcutStubCall(originalProcedure),
+        interfaceTarget: originalProcedure,
+        functionType: originalProcedure.getterType as FunctionType);
     final bool shouldReturn =
         !(originalProcedure.function.returnType is VoidType);
     createPointcutStubProcedure(
